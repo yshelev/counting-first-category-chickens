@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Сортировка тушек - Live</title>
+    <style>
+        *{box-sizing:border-box}
+        body{font-family:Arial,sans-serif;max-width:1000px;margin:40px auto;padding:20px;background:#f8f9fa}
+        h1{color:#333}
+        .status-bar{display:flex;gap:20px;margin:20px 0;flex-wrap:wrap}
+        .stat{background:#fff;padding:15px 30px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);flex:1;text-align:center;min-width:120px}
+        .num{font-size:2em;font-weight:bold}
+        .num.good{color:#4CAF50}
+        .num.bad{color:#f44336}
+        .num.info{color:#2196F3}
+        .stat-label{color:#888;font-size:14px;margin-top:4px}
+        .bird-list{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:12px;max-height:500px;overflow-y:auto}
+        .bird-item{display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f0f0f0;font-size:14px;align-items:center}
+        .bird-item:last-child{border-bottom:none}
+        .bird-item.new{animation:flash .5s}
+        @keyframes flash{0%{background:#e8f5e9}100%{background:transparent}}
+        .badge{display:inline-block;padding:2px 12px;border-radius:12px;font-size:12px;font-weight:600}
+        .badge.good{background:#e8f5e9;color:#2e7d32}
+        .badge.bad{background:#ffebee;color:#c62828}
+        .live-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#4CAF50;margin-right:8px;animation:pulse 1.5s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+        #ws-status{position:fixed;bottom:20px;right:20px;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:500}
+        .connected{background:#4CAF50;color:#fff}
+        .disconnected{background:#f44336;color:#fff}
+        .empty{text-align:center;color:#999;padding:40px}
+        .header{display:flex;justify-content:space-between;align-items:center}
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🐔 Сортировка тушек <span class="live-dot"></span> LIVE</h1>
+    <span style="color:#888;font-size:14px">RTSP поток</span>
+</div>
+
+<div class="status-bar">
+    <div class="stat"><div class="num info" id="total">0</div><div class="stat-label">Всего</div></div>
+    <div class="stat"><div class="num good" id="grade1">0</div><div class="stat-label">1-й сорт</div></div>
+    <div class="stat"><div class="num bad" id="brak">0</div><div class="stat-label">Брак</div></div>
+</div>
+
+<div class="bird-list" id="birdList">
+    <div class="empty">⏳ Ожидание данных...</div>
+</div>
+
+<div id="ws-status" class="disconnected">Отключено</div>
+
+<script>
+let ws;
+
+function connect() {
+    ws = new WebSocket(`ws://${location.host}/ws`);
+    ws.onopen = () => {
+        document.getElementById('ws-status').className = 'connected';
+        document.getElementById('ws-status').textContent = 'Подключено';
+    };
+    ws.onclose = () => {
+        document.getElementById('ws-status').className = 'disconnected';
+        document.getElementById('ws-status').textContent = 'Отключено';
+        setTimeout(connect, 3000);
+    };
+    ws.onmessage = (e) => {
+        const m = JSON.parse(e.data);
+        if (m.type === 'init') {
+            m.birds.forEach(b => addBird(b, false));
+            updateStats(m.stats);
+        } else if (m.type === 'bird') {
+            addBird(m.bird, true);
+            updateStats(m.stats);
+        }
+    };
+}
+
+function updateStats(stats) {
+    document.getElementById('total').textContent = stats.total || 0;
+    document.getElementById('grade1').textContent = stats.grade1 || 0;
+    document.getElementById('brak').textContent = stats.brak || 0;
+}
+
+function addBird(bird, animate) {
+    const list = document.getElementById('birdList');
+    // Удаляем пустое сообщение
+    const empty = list.querySelector('.empty');
+    if (empty) empty.remove();
+
+    const cls = bird.grade === '1' ? 'good' : 'bad';
+    const label = bird.grade === '1' ? '✅ 1-й сорт' : '⚠️ Брак';
+
+    const div = document.createElement('div');
+    div.className = 'bird-item' + (animate ? ' new' : '');
+    div.innerHTML = `
+        <span><strong>#${bird.n}</strong> ID:${bird.id}</span>
+        <span>Plump: ${bird.plump.toFixed(2)}</span>
+        <span>R:${(bird.red*100).toFixed(1)}% Y:${(bird.yellow*100).toFixed(1)}%</span>
+        <span class="badge ${cls}">${label}</span>
+    `;
+    list.prepend(div);
+
+    // Ограничиваем список
+    while (list.children.length > 100) {
+        list.removeChild(list.lastChild);
+    }
+}
+
+connect();
+</script>
+</body>
+</html>

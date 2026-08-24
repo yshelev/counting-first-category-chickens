@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  processor:
+    build: ./processor
+    restart: unless-stopped
+    volumes:
+      - ./processor/models:/app/models
+    env_file:
+      - .env
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - processor
+    volumes:
+      - ./client:/app/static
+    env_file:
+      - .env
