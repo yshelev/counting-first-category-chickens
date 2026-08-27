@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import base64
 import cv2
 import numpy as np
 import torch
@@ -10,7 +11,7 @@ import requests
 
 load_dotenv()
 
-# Конфиг
+print("LKRLEWKL:WKERL:KWLERKWLERKW:LEKRWL:")
 RTSP_URL = os.getenv("RTSP_URL")
 MODEL_PATH = os.getenv("MODEL_PATH", "/app/models/best.pt")
 CONF = float(os.getenv("CONF", 0.4))
@@ -19,17 +20,11 @@ PLUMP_THIN = float(os.getenv("PLUMP_THIN", 0.30))
 DICE_MIN = float(os.getenv("DICE_MIN", 0.60))
 DEFECT_RED = float(os.getenv("DEFECT_RED", 0.015))
 DEFECT_YELLOW = float(os.getenv("DEFECT_YELLOW", 0.020))
-FRAME_SKIP = int(os.getenv("FRAME_SKIP", 3))
+FRAME_SKIP = int(os.getenv("FRAME_SKIP", 1))
+API_URL = os.getenv("SERVER_URL", "http://server:8000") + "/data/bird"
 
-API_URL = os.getenv("PROCESSOR_URL", "http://api-gateway:8000") + "/data"
-
-print(f"RTSP: {RTSP_URL}")
-print(f"Model: {MODEL_PATH}")
-
-# Загрузка модели
 model = YOLO(MODEL_PATH) if os.path.exists(MODEL_PATH) else YOLO("yolov8n-seg.pt")
-
-# Функции обработки
+print("HELLO WORKER")
 def crop_to_mask(m):
     ys, xs = np.where(m > 0)
     if len(ys) == 0: return None
@@ -71,7 +66,14 @@ def verdict(plump, dice, red, yellow):
         return "брак"
     return "1"
 
+def send_bird(bird_data):
+    try:
+        requests.post(API_URL, json=bird_data, timeout=1)
+    except Exception as e:
+        print(f"Send error: {e}")
+
 def process_video():
+    print("QWEQWEQWEQWEQWEQW")
     cap = cv2.VideoCapture(RTSP_URL)
     if not cap.isOpened():
         print(f"Failed to open RTSP: {RTSP_URL}")
@@ -80,11 +82,11 @@ def process_video():
     W = int(cap.get(3))
     H = int(cap.get(4))
     x_line = int(W * LINE_FRAC)
-    prev, seen, birds = {}, set(), []
+    prev, seen = {}, set()
     order = 0
     frame_count = 0
 
-    print("Started processing RTSP stream")
+    print(f"Started processing RTSP stream. Line at x={x_line}")
 
     while True:
         ok, frame = cap.read()
@@ -135,19 +137,12 @@ def process_video():
                     "red": cr["red"],
                     "yellow": cr["yellow"],
                 }
-                birds.append(bird)
                 seen.add(tid)
-
                 send_bird(bird)
+                print(f"BIRD {tid} SENT! Order: {order}", flush=True)
 
             prev[tid] = cx
 
-def send_bird(bird):
-    """Отправка данных о тушке в API Gateway"""
-    try:
-        requests.post(f"{API_URL}/bird", json=bird, timeout=1)
-    except Exception as e:
-        print(f"Send error: {e}")
-
+            
 if __name__ == "__main__":
     process_video()

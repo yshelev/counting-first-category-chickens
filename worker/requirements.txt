@@ -1,6 +1,7 @@
-opencv-python==4.8.1.78
+opencv-python-headless==4.8.1.78
 numpy==1.24.3
 torch==2.1.0
-ultralytics==8.0.221
+ultralytics>=8.2.0
 python-dotenv==1.0.0
 requests==2.31.0
+lap>=0.5.12

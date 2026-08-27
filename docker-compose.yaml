@@ -1,21 +1,27 @@
-version: '3.8'
-
 services:
-  processor:
-    build: ./processor
-    restart: unless-stopped
-    volumes:
-      - ./processor/models:/app/models
-    env_file:
-      - .env
-
-  api-gateway:
-    build: ./api-gateway
+  server:
+    build: ./server
     ports:
       - "8000:8000"
-    depends_on:
-      - processor
     volumes:
       - ./client:/app/static
+    environment:
+      - WORKER_URL=http://worker:8001
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    depends_on:
+      - worker
+
+  worker:
+    build: ./worker
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./worker:/app  
+      - ./test:/test   
     env_file:
       - .env
+    environment:
+      - SERVER_URL=http://server:8000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
