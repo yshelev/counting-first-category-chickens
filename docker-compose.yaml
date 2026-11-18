@@ -5,6 +5,7 @@ services:
       - "8000:8000"
     volumes:
       - ./client:/app/static
+      - ./server:/app/server/main.py
     environment:
       - WORKER_URL=http://worker:8001
       - PYTHONUNBUFFERED=1

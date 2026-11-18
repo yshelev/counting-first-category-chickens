@@ -21,7 +21,6 @@ async def index():
 async def ws(websocket: WebSocket):
     await websocket.accept()
     subscribers.add(websocket)
-    # Отправляем последние 50 тушек
     await websocket.send_json({
         "type": "init",
         "birds": birds[-50:],
