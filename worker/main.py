@@ -58,14 +58,21 @@ def color_ratio(frame, mb):
         "yellow": float((yellow & mb).sum()) / tot
     }
 
-def verdict(plump, dice, red, yellow):
+def verdict(plump, red, yellow):
     if red >= DEFECT_RED or yellow >= DEFECT_YELLOW:
-        return "брак"
-    if dice < DICE_MIN:
         return "брак"
     if plump < PLUMP_THIN:
         return "брак"
     return "1"
+
+def make_thumb(frame, mb):
+    ys, xs = np.where(mb)
+    crop = frame[ys.min():ys.max()+1, xs.min():xs.max()+1]
+    h, w = crop.shape[:2]
+    scale = 96 / max(h, w)
+    crop = cv2.resize(crop, (max(1, int(w*scale)), max(1, int(h*scale))))
+    ok, buf = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    return base64.b64encode(buf).decode() if ok else None
 
 def send_bird(bird_data):
     try:
@@ -139,6 +146,8 @@ def process_video():
                     "plump": plump,
                     "red": cr["red"],
                     "yellow": cr["yellow"],
+                    "grade": verdict(plump, cr["red"], cr["yellow"]),
+                    "thumb": make_thumb(frame, mb),
                 }
                 seen.add(tid)
                 send_bird(bird)

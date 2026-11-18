@@ -92,9 +92,12 @@ function addBird(bird, animate) {
     div.className = 'bird-item' + (animate ? ' new' : '');
 
     // Превью
-    const img = document.createElement('img');
-    img.src = 'data:image/jpeg;base64,' + bird.thumb;
-    img.alt = 'Тушка #' + bird.n;
+    if (bird.thumb) {
+        const img = document.createElement('img');
+        img.src = 'data:image/jpeg;base64,' + bird.thumb;
+        img.alt = 'Тушка #' + bird.n;
+        div.appendChild(img);
+    }
 
     const info = document.createElement('div');
     info.className = 'bird-info';
