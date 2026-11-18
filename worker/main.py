@@ -23,7 +23,8 @@ DEFECT_YELLOW = float(os.getenv("DEFECT_YELLOW", 0.020))
 FRAME_SKIP = int(os.getenv("FRAME_SKIP", 1))
 API_URL = os.getenv("SERVER_URL", "http://server:8000") + "/data/bird"
 
-model = YOLO(MODEL_PATH) if os.path.exists(MODEL_PATH) else YOLO("yolov8n-seg.pt")
+model = YOLO(MODEL_PATH, task="segment") if os.path.exists(MODEL_PATH) else YOLO("yolov8n-seg.pt")
+print(model.task)
 print("HELLO WORKER")
 def crop_to_mask(m):
     ys, xs = np.where(m > 0)
@@ -108,12 +109,14 @@ def process_video():
 
         ids = r.boxes.id.int().cpu().tolist()
         xyxy = r.boxes.xyxy.cpu().numpy()
+        print("rboxes", r.boxes)
+        print("rmasks", r.masks)
         masks = r.masks.data.cpu().numpy() if r.masks is not None else None
 
         for k, (box, tid) in enumerate(zip(xyxy, ids)):
             x1, y1, x2, y2 = map(int, box)
             cx = (x1 + x2) // 2
-
+            print(masks)
             if (tid in prev and tid not in seen and
                 prev[tid] < x_line <= cx and
                 masks is not None and k < len(masks)):
