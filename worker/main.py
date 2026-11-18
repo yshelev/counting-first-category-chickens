@@ -25,7 +25,6 @@ API_URL = os.getenv("SERVER_URL", "http://server:8000") + "/data/bird"
 
 model = YOLO(MODEL_PATH, task="segment") if os.path.exists(MODEL_PATH) else YOLO("yolov8n-seg.pt")
 print(model.task)
-print("HELLO WORKER")
 def crop_to_mask(m):
     ys, xs = np.where(m > 0)
     if len(ys) == 0: return None
@@ -81,7 +80,6 @@ def send_bird(bird_data):
         print(f"Send error: {e}")
 
 def process_video():
-    print("QWEQWEQWEQWEQWEQW")
     cap = cv2.VideoCapture(RTSP_URL)
     if not cap.isOpened():
         print(f"Failed to open RTSP: {RTSP_URL}")
@@ -116,14 +114,11 @@ def process_video():
 
         ids = r.boxes.id.int().cpu().tolist()
         xyxy = r.boxes.xyxy.cpu().numpy()
-        print("rboxes", r.boxes)
-        print("rmasks", r.masks)
         masks = r.masks.data.cpu().numpy() if r.masks is not None else None
 
         for k, (box, tid) in enumerate(zip(xyxy, ids)):
             x1, y1, x2, y2 = map(int, box)
             cx = (x1 + x2) // 2
-            print(masks)
             if (tid in prev and tid not in seen and
                 prev[tid] < x_line <= cx and
                 masks is not None and k < len(masks)):
